@@ -29,7 +29,7 @@ do_start() {
         sleep 1; ((i++))
         if [ $i -ge 30 ]; then err "Postgres did not start in 30s"; exit 1; fi
     done
-    ok "Postgres is ready on localhost:5432"
+    ok "Postgres is ready on localhost:5433"
     ok "  DB:   $POSTGRES_DB"
     ok "  User: $POSTGRES_USER"
 }

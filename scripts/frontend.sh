@@ -17,7 +17,15 @@ HOST="$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/to
 _env_port() {
     local key="$1" default="$2"
     local url
-    url=$(grep -E "^${key}=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+    local f
+    url=""
+    # Same files app/config.py reads, .env.local winning; repo root kept as a
+    # fallback for setups that predate the move to backend/.
+    for f in "$ROOT/backend/.env.local" "$ROOT/backend/.env" "$ROOT/.env.local" "$ROOT/.env"; do
+        [ -f "$f" ] || continue
+        url=$(grep -E "^${key}=" "$f" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$url" ]; then break; fi
+    done
     if [ -n "$url" ]; then
         echo "$url" | sed 's|.*:\([0-9][0-9]*\)$|\1|' | grep -E '^[0-9]+$' || echo "$default"
     else
@@ -25,7 +33,7 @@ _env_port() {
     fi
 }
 PORT="${FRONTEND_PORT:-$(_env_port FRONTEND_URL 3001)}"
-BACKEND_PORT="${BACKEND_PORT:-$(_env_port BACKEND_URL 8000)}"
+BACKEND_PORT="${BACKEND_PORT:-$(_env_port BACKEND_URL 8001)}"
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; CYAN='\033[0;36m'; NC='\033[0m'
 log()  { echo -e "${CYAN}[frontend]${NC} $*"; }

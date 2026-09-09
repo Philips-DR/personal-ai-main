@@ -37,7 +37,7 @@ def _get_url() -> str:
     url = os.environ.get("DATABASE_URL", "")
     if not url:
         # Fall back to pyproject default
-        url = "postgresql+asyncpg://assistant:assistant@localhost:5432/assistant"
+        url = "postgresql+asyncpg://assistant:assistant@localhost:5433/assistant"
     # Alembic needs asyncpg dialect
     if url.startswith("postgresql://") and "+asyncpg" not in url:
         url = url.replace("postgresql://", "postgresql+asyncpg://", 1)

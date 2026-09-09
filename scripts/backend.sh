@@ -13,13 +13,21 @@ PID_FILE="$BACKEND_DIR/.pid"
 LOG_FILE="$BACKEND_DIR/server.log"
 HOST="$(curl -s --connect-timeout 2 -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 30" 2>/dev/null | xargs -I{} curl -s --connect-timeout 2 -H "X-aws-ec2-metadata-token: {}" http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || hostname -I | awk '{print $1}')"
 
-# Read port from .env BACKEND_URL, fall back to BACKEND_PORT env var, then 8000
+# Read port from .env BACKEND_URL, fall back to BACKEND_PORT env var, then 8001
 _env_port() {
     local key="$1" default="$2"
     local url
-    url=$(grep -E "^${key}=" "$ROOT/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+    local f
+    url=""
+    # Same files app/config.py reads, .env.local winning; repo root kept as a
+    # fallback for setups that predate the move to backend/.
+    for f in "$ROOT/backend/.env.local" "$ROOT/backend/.env" "$ROOT/.env.local" "$ROOT/.env"; do
+        [ -f "$f" ] || continue
+        url=$(grep -E "^${key}=" "$f" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"'"'" | tr -d '[:space:]')
+        if [ -n "$url" ]; then break; fi
+    done
     if [ -n "$url" ]; then
-        # Extract port from URL (e.g. http://host:8000 → 8000)
+        # Extract port from URL (e.g. http://host:8001 → 8001)
         echo "$url" | sed 's|.*:\([0-9][0-9]*\)$|\1|' | grep -E '^[0-9]+$' || echo "$default"
     else
         echo "$default"

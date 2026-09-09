@@ -1,5 +1,5 @@
 -- RPC function for pgvector similarity search used by the memory store.
--- Call via: supabase.rpc("match_memory_entries", {...})
+-- Called from app/memory/store.py as: SELECT * FROM match_memory_entries(...)
 create or replace function match_memory_entries(
   query_embedding vector(1536),
   match_limit int default 10,

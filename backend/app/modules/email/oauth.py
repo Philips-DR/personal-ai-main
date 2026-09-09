@@ -105,7 +105,7 @@ async def exchange_code(code: str, authorization_response: str | None = None) ->
         expiry=expiry,
         scopes=SCOPES,
     )
-    await _store_tokens(creds)
+    await store_credentials(creds)
     logger.info("Gmail OAuth tokens stored successfully")
 
 
@@ -133,14 +133,18 @@ async def get_credentials() -> Credentials:
 
     if creds.expired or (creds.expiry and creds.expiry < datetime.now(UTC) + timedelta(minutes=5)):
         creds.refresh(Request())
-        await _store_tokens(creds)
+        await store_credentials(creds)
         logger.info("Refreshed Gmail OAuth token")
 
     return creds
 
 
-async def _store_tokens(creds: Credentials) -> None:
-    """Upsert encrypted tokens into the oauth_tokens table."""
+async def store_credentials(creds: Credentials) -> None:
+    """Upsert encrypted tokens into the oauth_tokens table.
+
+    Public so CLI setup scripts can persist credentials through the same
+    encrypted path the web OAuth callback uses.
+    """
     async with get_session() as session:
         await session.execute(
             text("""

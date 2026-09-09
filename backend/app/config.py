@@ -1,9 +1,16 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# The backend package root. Env files are resolved absolutely so configuration
+# loads identically whether the process starts from backend/, the repo root,
+# or a standalone script under scripts/.
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env", ".env.local"),
+        env_file=(_BACKEND_DIR / ".env", _BACKEND_DIR / ".env.local"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -32,10 +39,11 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     # PostgreSQL (local Docker via asyncpg)
     # -------------------------------------------------------------------------
-    database_url: str = "postgresql+asyncpg://assistant:assistant@localhost:5432/assistant"
+    database_url: str = "postgresql+asyncpg://assistant:assistant@localhost:5433/assistant"
 
     # -------------------------------------------------------------------------
-    # OAuth token encryption (Fernet key — see scripts/generate_key.py)
+    # OAuth token encryption. Generate a key with:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     # -------------------------------------------------------------------------
     oauth_token_encryption_key: str = ""
 
@@ -44,7 +52,7 @@ class Settings(BaseSettings):
     # -------------------------------------------------------------------------
     gmail_client_id: str = ""
     gmail_client_secret: str = ""
-    gmail_redirect_uri: str = "http://localhost:8000/api/auth/gmail/callback"
+    gmail_redirect_uri: str = "http://localhost:8001/api/auth/gmail/callback"
 
     # -------------------------------------------------------------------------
     # Transcription
@@ -125,8 +133,8 @@ class Settings(BaseSettings):
     # Application
     # -------------------------------------------------------------------------
     app_env: str = "development"
-    backend_url: str = "http://localhost:8000"
-    frontend_url: str = "http://localhost:3000"
+    backend_url: str = "http://localhost:8001"
+    frontend_url: str = "http://localhost:3001"
     log_level: str = "INFO"
 
     @property

@@ -3,7 +3,7 @@
 
 ## Project Overview
 
-An agentic AI assistant built by the AyaData AI Solutions team. Hybrid architecture: Python (FastAPI) backend + TypeScript (Next.js) frontend. Claude via AWS Bedrock for AI, Supabase for persistence, pgvector for RAG memory.
+An agentic AI assistant built by the AyaData AI Solutions team. Hybrid architecture: Python (FastAPI) backend + TypeScript (Next.js) frontend. Claude via AWS Bedrock for AI, PostgreSQL for persistence, pgvector for RAG memory.
 
 ## Architecture Principles
 
@@ -30,7 +30,7 @@ Each file within a module should have a single responsibility. Prefer many small
 
 ### Independent Modules
 
-- Modules are stateless between requests — all state lives in Supabase
+- Modules are stateless between requests — all state lives in PostgreSQL
 - Modules declare their supported intents and the orchestrator routes to them
 - Modules can be developed, tested, and deployed independently
 - Adding a new module requires: (1) implement `ModuleHandler`, (2) register in router — nothing else
@@ -41,7 +41,7 @@ Each file within a module should have a single responsibility. Prefer many small
 - **NEVER** hardcode API keys, tokens, passwords, or connection strings in source code
 - All secrets live in `.env.local` (gitignored) and are loaded via `pydantic-settings`
 - `.env.example` documents every required variable with placeholder values
-- OAuth tokens are stored encrypted in Supabase, never in plain text or local files
+- OAuth tokens are stored encrypted in PostgreSQL (`oauth_tokens`), never in plain text or local files
 
 ### Authentication
 - Gmail integration uses OAuth 2.0 with minimal required scopes
@@ -88,7 +88,7 @@ Each file within a module should have a single responsibility. Prefer many small
 ## Performance
 
 - Cache frequently accessed data: email thread metadata, project/contact lists, recent memory entries
-- Batch Supabase operations where possible (bulk inserts for action items, batch embedding storage)
+- Batch database operations where possible (bulk inserts for action items, batch embedding storage)
 - Set token budgets for Claude calls — don't send unbounded context
 - Use RAG retrieval (top-k similarity search) instead of loading all memory into prompts
 - Gmail polling uses incremental sync (history ID) rather than full inbox scans
@@ -124,7 +124,7 @@ Each file within a module should have a single responsibility. Prefer many small
 ### Testing
 - **Unit tests**: Every module handler, parser, and utility function has pytest tests
 - **Integration tests**: End-to-end orchestrator flows with mocked external services
-- **Fixture-based**: Use pytest fixtures for Supabase test data, mock Claude responses, sample emails/transcripts
+- **Fixture-based**: Use pytest fixtures for database test data, mock Claude responses, sample emails/transcripts
 - Tests run in CI before merge — no exceptions
 
 ### Human-in-the-Loop (HITL) Checkpoints

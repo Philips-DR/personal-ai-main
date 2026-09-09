@@ -169,7 +169,9 @@ scripts/
   backend.sh frontend.sh     Per-service process managers
   db.sh                      Postgres container lifecycle
   nginx.sh                   Nginx install and config deployment
-  migrate.py seed_memory.py  Database utilities
+  migrate.py                 Apply raw SQL migrations in backend/migrations/versions
+  seed_memory.py             Seed baseline people/project/preference memory entries
+  setup_oauth.py             CLI Gmail OAuth flow (Desktop app clients only)
 ```
 
 ### Database tables
@@ -215,9 +217,11 @@ Every other setting — token budgets, result limits, cron schedules, timeouts �
 default in `config.py` and can be overridden through the environment. Nothing is hardcoded in
 module code.
 
-> The service scripts in `scripts/` additionally read a repo-root `.env` for `BACKEND_URL`
-> and `FRONTEND_URL` to derive which ports to bind. Create one if you want ports other than
-> the defaults.
+> `backend/.env.local` is the one place configuration lives. `config.py` resolves it by
+> absolute path, and the service scripts read the same file for `BACKEND_URL` and
+> `FRONTEND_URL` to decide which ports to bind — so everything agrees no matter which
+> directory you run from. Ports default to `8001` (backend) and `3001` (frontend), matching
+> the nginx config.
 
 ### 2. Database
 
@@ -239,13 +243,28 @@ cd frontend && npm install
 ./scripts/run_dev.sh dev
 ```
 
-Backend on `:8000` (`/docs` for interactive API docs), frontend on `:3000`.
+Backend on `:8001` (`/docs` for interactive API docs), frontend on `:3001`.
 
 ### 5. Connect Gmail (optional)
 
 With the backend running, visit `/api/auth/gmail`. This redirects through Google's consent
-screen and stores the resulting tokens **encrypted** in the `oauth_tokens` table. Requested
-scopes are limited to `gmail.readonly`, `gmail.compose`, `gmail.send`, and `gmail.modify`.
+screen and stores the resulting tokens **encrypted** in the `oauth_tokens` table.
+
+Register `GMAIL_REDIRECT_URI` (default `http://localhost:8001/api/auth/gmail/callback`) as an
+authorized redirect URI on your OAuth client, or the consent screen will reject the request.
+
+There is also a command-line path that writes through the same encrypted storage:
+
+```bash
+python scripts/setup_oauth.py
+```
+
+It uses an ephemeral localhost port, so it needs an OAuth client of type **Desktop app**. If
+yours is a **Web application** client, use the browser flow above instead.
+
+Scopes cover Gmail (`readonly`, `compose`, `send`, `modify`), read-only Calendar, and Drive,
+Docs, and Sheets — see `SCOPES` in `backend/app/modules/email/oauth.py`, the single place
+they are declared.
 
 ---
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run SQL migrations against Supabase PostgreSQL in order."""
+"""Apply the raw SQL migrations in backend/migrations/versions in filename order."""
 
 import os
 import sys
@@ -11,7 +11,8 @@ MIGRATIONS_DIR = ROOT / "backend" / "migrations" / "versions"
 
 def load_env() -> dict[str, str]:
     env: dict[str, str] = {}
-    for env_file in (ROOT / ".env", ROOT / ".env.local"):
+    backend = ROOT / "backend"
+    for env_file in (backend / ".env", backend / ".env.local", ROOT / ".env", ROOT / ".env.local"):
         if env_file.exists():
             for line in env_file.read_text().splitlines():
                 line = line.strip()
@@ -23,16 +24,16 @@ def load_env() -> dict[str, str]:
 
 def get_db_url(env: dict[str, str]) -> str:
     url = os.getenv("DATABASE_URL") or env.get("DATABASE_URL")
-    if url:
-        return url
+    if not url:
+        print("ERROR: DATABASE_URL is not set.\n")
+        print("Add this line to backend/.env.local:")
+        print("  DATABASE_URL=postgresql+asyncpg://assistant:assistant@localhost:5433/assistant")
+        print()
+        print("Start the local database first with: ./scripts/db.sh start")
+        sys.exit(1)
 
-    print("ERROR: DATABASE_URL is not set in .env\n")
-    print("Add this line to your .env file:")
-    print('  DATABASE_URL=postgresql://postgres.[ref]:[password]@db.[ref].supabase.co:5432/postgres')
-    print()
-    print("Find it at: Supabase Dashboard → Settings → Database → Connection string → URI")
-    print("  (use the direct connection, not the pooler)")
-    sys.exit(1)
+    # psycopg2 is a sync driver and rejects the async dialect the app uses.
+    return url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
 
 def ensure_psycopg2() -> None:
@@ -60,7 +61,7 @@ def run_migrations() -> None:
         print("No migration files found in", MIGRATIONS_DIR)
         return
 
-    print(f"Connecting to database...")
+    print("Connecting to database...")
     try:
         conn = psycopg2.connect(db_url)
         conn.autocommit = True
